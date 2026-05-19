@@ -656,10 +656,35 @@
     document.getElementById('impF')?.addEventListener('change',async e=>{
       const f=e.target.files[0];if(!f)return;
       try{const d=JSON.parse(await f.text());
-        if(d.tips){allTips=d.tips;for(const p of Object.keys(allTips))await saveTips(p)}
-        if(d.results){results=d.results;await saveResults()}
-        if(d.pins){allPins=d.pins;await savePins()}
-        alert('Import úspešný.');render()}catch(err){alert('Chyba: '+err.message)}});
+        let added=0,skipped=0,resAdded=0;
+        if(d.tips){
+          for(const pid of Object.keys(d.tips)){
+            if(!allTips[pid])allTips[pid]={};
+            for(const mid of Object.keys(d.tips[pid])){
+              const incoming=d.tips[pid][mid];
+              const existing=allTips[pid][mid];
+              if(existing&&existing.lockedAt){skipped++;continue}
+              if(incoming&&incoming.lockedAt){allTips[pid][mid]=incoming;added++}
+            }
+            await saveTips(pid);
+          }
+        }
+        if(d.results){
+          for(const mid of Object.keys(d.results)){
+            if(!results[mid]||results[mid].regHome==null){
+              results[mid]=d.results[mid];resAdded++;
+            }
+          }
+          await saveResults();
+        }
+        if(d.pins){
+          for(const pid of Object.keys(d.pins)){
+            if(!allPins[pid]){allPins[pid]=d.pins[pid]}
+          }
+          await savePins();
+        }
+        alert(`Import úspešný!\n\n✅ Pridané tipy: ${added}\n⏭ Preskočené (už existujúce): ${skipped}\n📊 Pridané výsledky: ${resAdded}`);
+        render()}catch(err){alert('Chyba: '+err.message)}});
   }
 
   // =========== INIT ===========
